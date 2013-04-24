@@ -1,5 +1,5 @@
 # notes
-> Shell script for compiling notes with pandoc.
+> Shell script for compiling pdf notes with pandoc.
 
 ## Usage
 
@@ -19,9 +19,14 @@
     notes 1 3
        compiles notes for year 1 module 3
 
+## Dependencies
+    * pandoc
+    * LaTex
+    * ghostscript
+
 ## Explanation
 
-This is a script I wrote to help compile my medical school notes with pandoc. As such, it's catered to my needs, but you should be able to adjust it for yours quite easily. Notes are organized in a directory specified by the environment variable `$NOTES_DIR`. Inside this directory there are years and inside the years there are modules. For instance...
+This is a script I wrote to help compile my medical school notes with pandoc. As such, it's catered to my needs, but you should be able to adjust it for yours quite easily. Notes are organized in a directory specified by the environment variable `$NOTES_DIR`. Inside this directory there are years and inside the years there are modules. It also uses environment variables `$YEAR` and `$MODULE` for the current year and module. You could define these in the script itself if you'd like. The directory structure looks like this...
 
     /home/connermcd/Dropbox/Courses/Notes
     ├── MS1
@@ -53,12 +58,12 @@ This is used by the script to sort the files chronologically in the exported pdf
 
 ## Vim/bash integration
 
-I use vim and so I have some handy shortcuts that I use for notes that I will include here:
+I use vim and so I have some handy shortcuts that I use for notes that I will include here. These use `ack` and the `Ack.vim` vim plugin.
 
     let g:year = system('echo -n "$YEAR"')
     let g:module = system('echo -n "$MODULE"')
     command! -nargs=1 Nack Ack -i --text --nohtml "<args>" $NOTES_DIR/*/*/*.txt
-    command! -nargs=1 Note exe "e! " . fnameescape($NOTES_DIR/MS". g:year . "/mod" . g:module . "/<args>.txt")
+    command! -nargs=1 Note exe "e! " . fnameescape($NOTES_DIR . "/MS". g:year . "/mod" . g:module . "/<args>.txt")
 
     nnoremap <leader>[ :Nls 
     nnoremap <leader>] :Note 
@@ -71,7 +76,7 @@ I use vim and so I have some handy shortcuts that I use for notes that I will in
        au BufRead,BufWrite,InsertChange */mod*/*.txt syn match ErrorMsg '\%>77v.\+'
     augroup end
 
-I also use a bash version of the `:Nack` command:
+I also use a bash version of the `:Nack` command so I can search my notes from the command line.
 
     function nack {
        vim -c "Nack $*"

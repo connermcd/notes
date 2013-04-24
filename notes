@@ -28,17 +28,17 @@ EOF
 getnotes() {
    ack --text -n "> Date: " . | \
    while read line; do
-      TYPE=`echo "$line" | sed 's/\([^ ]*\) .*/\1/'`
-      FILE=`echo "$line" | sed 's/\([^:]*\):2:>.*$/\1/'`
-      DATE=`echo "$line" | sed 's/[^:]*:2:> Date: \(.*$\)/\1/'`
-      echo "$TYPE$DATE $FILE"
+      course=$(echo "$line" | sed 's/\([^ ]*\) .*/\1/')
+      file=$(echo "$line" | sed 's/\([^:]*\):2:>.*$/\1/')
+      date=$(echo "$line" | sed 's/[^:]*:2:> Date: \(.*$\)/\1/')
+      echo "$course$date $file"
    done | \
    sort -n | \
    while read line; do
-      FILE=`echo "$line" | sed 's/[^ ]* \(.*\)/\1/'`
-      echo "$FILE"
+      file=$(echo "$line" | sed 's/[^ ]* \(.*\)/\1/')
+      echo "$file"
    done
-   unset TYPE FILE DATE
+   unset course file date
 }
 
 makepdf() {
@@ -58,25 +58,25 @@ makenotes() {
    for year in $NOTES_DIR/MS$1; do
       for module in $year/mod$2; do
          cd "$module"
-         NOTES=`getnotes`
-         OUTPUT_FILE="$module/"`basename "$module"`
+         notes=$(getnotes)
+         output_file="$module/"$(basename "$module")
 
-         OLDIFS=$IFS
+         oldifs=$IFS
          IFS=$'\n'
 
-         makepdf "$OUTPUT_FILE" "$NOTES"
-         makehtml "$OUTPUT_FILE" "$NOTES"
+         makepdf "$output_file" "$notes"
+         makehtml "$output_file" "$notes"
 
-         IFS=$OLDIFS
+         IFS=$oldifs
 
-         unset NOTES OUTPUT_FILE OLDIFS
+         unset notes output_file oldifs
          cd - &>/dev/null
       done
       cd "$year"
       echo "Compiling MS${year}.pdf..."
       gs -sDEVICE=pdfwrite \
          -dQUIET \
-         -o "`basename $year`.pdf" \
+         -o "$(basename $year).pdf" \
          mod*/*.pdf &&
          echo "Created ${year}.pdf"
       cd - &>/dev/null

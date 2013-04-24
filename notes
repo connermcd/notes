@@ -73,7 +73,7 @@ makenotes() {
          cd - &>/dev/null
       done
       cd "$year"
-      echo "Compiling MS${1}.pdf..."
+      echo "Compiling MS${year}.pdf..."
       gs -sDEVICE=pdfwrite \
          -dQUIET \
          -o "`basename $year`.pdf" \

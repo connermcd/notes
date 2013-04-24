@@ -1,0 +1,105 @@
+#!/bin/bash
+
+set -e
+
+usage() {
+cat << EOF
+USAGE:
+
+   notes [year|"all"] [module]
+
+EXAMPLES:
+
+   notes
+      compiles notes for current year/module
+
+   notes all
+      compiles all notes
+
+   notes 1
+      compiles notes for year 1
+
+   notes 1 3
+      compiles notes for year 1 module 3
+
+EOF
+}
+
+getnotes() {
+   ack --text -n "> Date: " . | \
+   while read line; do
+      TYPE=`echo "$line" | sed 's/\([^ ]*\) .*/\1/'`
+      FILE=`echo "$line" | sed 's/\([^:]*\):2:>.*$/\1/'`
+      DATE=`echo "$line" | sed 's/[^:]*:2:> Date: \(.*$\)/\1/'`
+      echo "$TYPE$DATE $FILE"
+   done | \
+   sort -n | \
+   while read line; do
+      FILE=`echo "$line" | sed 's/[^ ]* \(.*\)/\1/'`
+      echo "$FILE"
+   done
+   unset TYPE FILE DATE
+}
+
+makepdf() {
+      pandoc --latex-engine=lualatex -H $NOTES_DIR/fonts.tex --toc \
+         -o "${1}.pdf" $NOTES_DIR/about.md $2 &&
+      echo "Created ${1}.pdf"
+}
+
+makehtml() {
+      pandoc -w slidy -H $NOTES_DIR/slidy.html -s $2 | \
+         sed -e 's/<h[2-9]/<\/div><div class=\"slide\">&/' \
+         -e 's/slidy.js.gz/slidy.js/' > "${1}.html" &&
+         echo "Created ${1}.html"
+}
+
+makenotes() {
+   for year in $NOTES_DIR/MS$1; do
+      for module in $year/mod$2; do
+         cd "$module"
+         NOTES=`getnotes`
+         OUTPUT_FILE="$module/"`basename "$module"`
+
+         OLDIFS=$IFS
+         IFS=$'\n'
+
+         makepdf "$OUTPUT_FILE" "$NOTES"
+         makehtml "$OUTPUT_FILE" "$NOTES"
+
+         IFS=$OLDIFS
+
+         unset NOTES OUTPUT_FILE OLDIFS
+         cd - &>/dev/null
+      done
+      cd "$year"
+      echo "Compiling MS${1}.pdf..."
+      gs -sDEVICE=pdfwrite \
+         -dQUIET \
+         -o "`basename $year`.pdf" \
+         mod*/*.pdf &&
+         echo "Created ${year}.pdf"
+      cd - &>/dev/null
+   done
+}
+
+main() {
+   case "$1" in
+      "all") echo "Compiling all notes..." && makenotes "*" "*"; exit 0;;
+      '') echo "Compiling MS$YEAR/mod${MODULE}..." && makenotes $YEAR $MODULE; exit 0;;
+      [0-9]*)
+         if [[ "$2" = [0-9]* ]]; then
+            echo "Compiling MS$1/mod${2}..."
+            makenotes "$1" "$2"
+         elif [[ "$2" == "" ]]; then
+            echo "Compiling MS${1}..."
+            makenotes "$1" "*"
+         else
+            usage; exit 1
+         fi
+         exit 0;;
+      *) usage; exit 1;;
+   esac
+}
+
+main "$1" "$2"
